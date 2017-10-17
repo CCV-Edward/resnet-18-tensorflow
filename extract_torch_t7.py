@@ -254,8 +254,12 @@ with tf.Graph().as_default():
     # Set variables values
     print('Set variables to loaded weights')
     all_vars = tf.trainable_variables()
+    print(len(all_vars))
+    all_vars = tf.all_variables()[1:]
+    print(len(all_vars))
+    import pdb; pdb.set_trace()
     for v in all_vars:
-        print('\t' + v.op.name)
+        print('\t' + v.op.name + '\t' + str(v.shape.as_list()))
         assign_op = v.assign(model_weights[v.op.name])
         sess.run(assign_op)
 

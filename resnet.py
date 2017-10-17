@@ -24,8 +24,7 @@ class ResNet(object):
         self._flops = 0
         self._weights = 0
 
-
-    def build_tower(self, images, labels):
+    def build_main_tower(self, images):
         print('Building model')
         # filters = [128, 128, 256, 512, 1024]
         filters = [64, 64, 128, 256, 512]
@@ -33,42 +32,60 @@ class ResNet(object):
         strides = [2, 0, 2, 2, 2]
 
         # conv1
+        xs = []
         print('\tBuilding unit: conv1')
         with tf.variable_scope('conv1'):
             x = self._conv(images, kernels[0], filters[0], strides[0])
+            xs.append(x)
             x = self._bn(x)
+            xs.append(x)
             x = self._relu(x)
+            xs.append(x)
             x = tf.nn.max_pool(x, [1, 3, 3, 1], [1, 2, 2, 1], 'SAME')
+            xs.append(x)
 
         # conv2_x
         x = self._residual_block(x, name='conv2_1')
+        xs.append(x)
         x = self._residual_block(x, name='conv2_2')
+        xs.append(x)
 
         # conv3_x
         x = self._residual_block_first(x, filters[2], strides[2], name='conv3_1')
+        xs.append(x)
         x = self._residual_block(x, name='conv3_2')
+        xs.append(x)
 
         # conv4_x
         x = self._residual_block_first(x, filters[3], strides[3], name='conv4_1')
+        xs.append(x)
         x = self._residual_block(x, name='conv4_2')
+        xs.append(x)
 
         # conv5_x
         x = self._residual_block_first(x, filters[4], strides[4], name='conv5_1')
+        xs.append(x)
         x = self._residual_block(x, name='conv5_2')
+        xs.append(x)
+        return x, xs
 
+    def build_tower(self, images, labels):
+        x, xs = self.build_main_tower(images)
+        return self.build_predictions(x, labels, self._hp.num_classes, self._hp.batch_size)
+    
+    def build_predictions(self, x, labels, num_classes, batch_size):
         # Logit
         with tf.variable_scope('logits') as scope:
             print('\tBuilding unit: %s' % scope.name)
             x = tf.reduce_mean(x, [1, 2])
-            x = self._fc(x, self._hp.num_classes)
-
+            x = self._fc(x, num_classes)
         logits = x
 
         # Probs & preds & acc
         probs = tf.nn.softmax(x)
         preds = tf.to_int32(tf.argmax(logits, 1))
-        ones = tf.constant(np.ones([self._hp.batch_size]), dtype=tf.float32)
-        zeros = tf.constant(np.zeros([self._hp.batch_size]), dtype=tf.float32)
+        ones = tf.constant(np.ones([batch_size]), dtype=tf.float32)
+        zeros = tf.constant(np.zeros([batch_size]), dtype=tf.float32)
         correct = tf.where(tf.equal(preds, labels), ones, zeros)
         acc = tf.reduce_mean(correct)
 
@@ -77,7 +94,6 @@ class ResNet(object):
         loss = tf.reduce_mean(losses)
 
         return logits, preds, loss, acc
-
 
     def build_model(self):
         # Split images and labels into (num_gpus) groups

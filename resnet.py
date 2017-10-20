@@ -70,8 +70,9 @@ class ResNet(object):
         return x, xs
 
     def build_tower(self, images, labels):
-        x, xs = self.build_main_tower(images)
-        return self.build_predictions(x, labels, self._hp.num_classes, self._hp.batch_size)
+        with tf.variable_scope('resnet_v2_18'):
+          x, xs = self.build_main_tower(images)
+          return self.build_predictions(x, labels, self._hp.num_classes, self._hp.batch_size)
     
     def build_predictions(self, x, labels, num_classes, batch_size):
         # Logit

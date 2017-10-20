@@ -8,7 +8,7 @@ import resnet
 
 # FLAGS(?)
 T7_PATH = './resnet-18.t7'
-INIT_CHECKPOINT_DIR = './init'
+INIT_CHECKPOINT_DIR = './init-scope'
 
 
 # Open ResNet-18 torch checkpoint
@@ -214,12 +214,13 @@ model_weights_temp = {
 # Transpose conv and fc weights
 model_weights = {}
 for k, v in model_weights_temp.items():
+    k_ = os.path.join('resnet_v2_18', k)
     if len(v.shape) == 4:
-        model_weights[k] = np.transpose(v, (2, 3, 1, 0))
+        model_weights[k_] = np.transpose(v, (2, 3, 1, 0))
     elif len(v.shape) == 2:
-        model_weights[k] = np.transpose(v)
+        model_weights[k_] = np.transpose(v)
     else:
-        model_weights[k] = v
+        model_weights[k_] = v
 
 
 # Build ResNet-18 model and save parameters
